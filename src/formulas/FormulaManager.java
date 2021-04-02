@@ -7,6 +7,7 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.*;
 
 public class FormulaManager { 
 	private static SessionFactory factory;
@@ -74,6 +75,32 @@ public class FormulaManager {
     	}
 
     }
+    public void updateFormula(Integer formula_id, String TeX, Integer pageNumber, List<Integer> symbols)
+    {
+    	Session session = factory.openSession();
+    	Transaction tx = null;
+    	
+    	try {
+    		tx = session.beginTransaction();
+    		Set<Symbol> symb = new HashSet<Symbol>();
+    		for (Integer symb_id: symbols) {
+    			symb.add(session.get(Symbol.class, symb_id));
+    		}
+    		Formula formula = session.get(Formula.class, formula_id);
+    		formula.setFormulaTex(TeX);
+    		formula.setPageNum(pageNumber);
+    		formula.setSymbols(symb);
+    		session.update(formula);
+    		tx.commit();
+    	} catch (HibernateException he) {
+    		if (tx != null)
+    			tx.rollback();
+    		he.printStackTrace();
+    	} finally {
+    		session.close();
+    	}
+
+    }
 
     public void insertFormula(String f_tex, Integer f_pn) {
     	Session session = factory.openSession();
@@ -115,6 +142,14 @@ public class FormulaManager {
     	}
     	
     }
+
+	public List<Symbol> find_symbol(String s) {
+		Session session = factory.openSession();
+		String hql = "FROM Symbol WHERE symbolTex = :symbol_letter";
+		Query qhql = session.createQuery(hql);
+		qhql.setParameter("symbol_letter", s);
+		return qhql.list();
+	}
     
     public void updateSymbol(Integer SymbolId, Integer formula_id)
     {

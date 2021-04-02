@@ -1,6 +1,7 @@
 package formulas;
 
 import java.util.*;
+import java.util.regex.*;
 
 import formulas.Formula.Fields;
 import java.awt.EventQueue;
@@ -62,7 +63,7 @@ public class DBEditor {
 			model_data[i][j] = null; 
 		return model_data;
 	}
-
+	
 	/**
 	 * Initialize the contents of the frame.
 	 */
@@ -167,9 +168,27 @@ public class DBEditor {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				if ((changed_row != null) && (changed_row < table.getRowCount()-1)) {
+					/*fm.updateFormula((Integer)table.getValueAt(changed_row, Fields.Id.getValue()),
+							table.getValueAt(changed_row, Fields.TeX.getValue()).toString(),
+							Integer.parseInt(table.getValueAt(changed_row, Fields.Page.getValue()).toString()));*/
+					String symbol_regex = "(\\w)";
+					Pattern r = Pattern.compile(symbol_regex);
+					Matcher m = r.matcher(table.getValueAt(changed_row, Fields.TeX.getValue()).toString());
+					List<Integer> symbols_to_update = new ArrayList<Integer>();
+					while (m.find()){
+						System.out.println("Found symbol " + m.group(0));
+						List<Symbol> stored_symbol = fm.find_symbol(m.group(0));
+						System.out.println("Already stored symbols: " + stored_symbol.size());
+						if (stored_symbol.size() > 0) {
+							fm.updateSymbol(stored_symbol.get(0).getId(),
+									(Integer)table.getValueAt(changed_row, Fields.Id.getValue()));
+							symbols_to_update.add(stored_symbol.get(0).getId());
+						}
+					}
 					fm.updateFormula((Integer)table.getValueAt(changed_row, Fields.Id.getValue()),
 							table.getValueAt(changed_row, Fields.TeX.getValue()).toString(),
-							Integer.parseInt(table.getValueAt(changed_row, Fields.Page.getValue()).toString()));
+							Integer.parseInt(table.getValueAt(changed_row, Fields.Page.getValue()).toString()),
+							symbols_to_update);
 				}
 			}
 		});
