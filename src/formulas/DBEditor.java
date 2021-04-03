@@ -168,9 +168,6 @@ public class DBEditor {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				if ((changed_row != null) && (changed_row < table.getRowCount()-1)) {
-					/*fm.updateFormula((Integer)table.getValueAt(changed_row, Fields.Id.getValue()),
-							table.getValueAt(changed_row, Fields.TeX.getValue()).toString(),
-							Integer.parseInt(table.getValueAt(changed_row, Fields.Page.getValue()).toString()));*/
 					String symbol_regex = "(\\w)";
 					Pattern r = Pattern.compile(symbol_regex);
 					Matcher m = r.matcher(table.getValueAt(changed_row, Fields.TeX.getValue()).toString());
@@ -183,6 +180,9 @@ public class DBEditor {
 							fm.updateSymbol(stored_symbol.get(0).getId(),
 									(Integer)table.getValueAt(changed_row, Fields.Id.getValue()));
 							symbols_to_update.add(stored_symbol.get(0).getId());
+						} else {
+							Integer symb_id = fm.insertSymbol(m.group(0));
+							symbols_to_update.add(symb_id);
 						}
 					}
 					fm.updateFormula((Integer)table.getValueAt(changed_row, Fields.Id.getValue()),

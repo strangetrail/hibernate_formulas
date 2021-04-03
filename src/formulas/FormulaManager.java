@@ -7,7 +7,9 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.criterion.Restrictions;
 import org.hibernate.*;
+import javax.persistence.criteria.*;
 
 public class FormulaManager { 
 	private static SessionFactory factory;
@@ -123,7 +125,6 @@ public class FormulaManager {
     	
     }
 
-    
     public void deleteFormula(Integer formula_id) {
     	Session session = factory.openSession();
     	Transaction tx = null;
@@ -145,11 +146,48 @@ public class FormulaManager {
 
 	public List<Symbol> find_symbol(String s) {
 		Session session = factory.openSession();
-		String hql = "FROM Symbol WHERE symbolTex = :symbol_letter";
-		Query qhql = session.createQuery(hql);
-		qhql.setParameter("symbol_letter", s);
-		return qhql.list();
+		CriteriaBuilder cb_symbols = session.getCriteriaBuilder();
+		CriteriaQuery<Symbol> cquery = cb_symbols.createQuery(Symbol.class);
+		Root<Symbol> root = cquery.from(Symbol.class);
+		cquery.select(root).where(cb_symbols.equal(root.get("symbolTex").as(String.class), s));
+		
+		Query<Symbol> qnative = session.createQuery(cquery);
+		List<Symbol> ci_result = qnative.getResultList();
+		List<Symbol> cs_result = new ArrayList<Symbol>();
+		for (Symbol item : ci_result) {
+			if (item.getSymbolTex().compareTo(s) == 0)
+				cs_result.add(item);
+		}
+		return cs_result;
+		/*Criteria cquery = session.createCriteria(Symbol.class);
+		cquery.add(Restrictions.like("symbolTex", s));
+		return cquery.list();*/
+		//String hql = "FROM Symbol WHERE symbolTex LIKE :symbol_letter";
+		//Query qhql = session.createQuery(hql);
+		//qhql.setParameter("symbol_letter", s);
+		//return qhql.list();
 	}
+	
+    public Integer insertSymbol(String s_tex) {
+    	Session session = factory.openSession();
+    	Transaction tx = null;
+    	Integer new_id = null;
+    	
+    	try {
+    		tx = session.beginTransaction();
+    		Symbol s = new Symbol();
+    		s.setSymbolTex(s_tex);
+    		new_id = (Integer)session.save(s);
+    		tx.commit();
+    	} catch (HibernateException e) {
+    		if (tx != null)
+    			tx.rollback();
+    		e.printStackTrace();
+    	} finally {
+    		session.close();
+    	}
+		return new_id;
+    }
     
     public void updateSymbol(Integer SymbolId, Integer formula_id)
     {
