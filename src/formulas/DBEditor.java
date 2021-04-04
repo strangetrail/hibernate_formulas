@@ -9,7 +9,7 @@ import java.awt.EventQueue;
 import java.awt.event.*;
 
 import javax.swing.GroupLayout.Alignment;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 import javax.swing.*;
 import javax.swing.event.*;
 
@@ -81,6 +81,17 @@ public class DBEditor {
 		changed_row = null;
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		InputMap im_table = table.getInputMap();
+		table.getModel().addTableModelListener(new TableModelListener() {
+			
+			@Override
+			public void tableChanged(TableModelEvent e) {
+				// TODO Auto-generated method stub
+				int row = e.getFirstRow();
+				int column = e.getColumn();
+				TableModel tm_table = (TableModel)e.getSource();
+				changed_row = row;
+			}
+		});
 		
 		im_table.put(KeyStroke.getKeyStroke("DOWN"), "DOWN");
 		im_table.put(KeyStroke.getKeyStroke("UP"), "UP");
@@ -94,7 +105,7 @@ public class DBEditor {
 				System.out.println("Changing Row!");
 				if (table.getSelectedRow() < table.getRowCount() - 1) {
 					table.changeSelection(table.getSelectedRow() + 1, 0, false, false);
-					changed_row = table.getSelectedRow();
+					//changed_row = table.getSelectedRow();
 				}
 			}
 		});
@@ -105,7 +116,7 @@ public class DBEditor {
 				System.out.println("Changing Row!");
 				if (table.getSelectedRow() > 0) {
 					table.changeSelection(table.getSelectedRow() - 1, 0, false, false);
-					changed_row = table.getSelectedRow();
+					//changed_row = table.getSelectedRow();
 				}
 			}
 		});
@@ -128,7 +139,7 @@ public class DBEditor {
 					System.out.println("Changing Row!");
 				
 					table_source.changeSelection(rowAtPoint, columnAtPoint, false, false);
-					changed_row = rowAtPoint;
+					//changed_row = rowAtPoint;
 				}
 			}
 		});
@@ -153,6 +164,8 @@ public class DBEditor {
 		
 		JMenuBar menuBar = new JMenuBar();
 		JMenu m0 = new JMenu("Operations");
+		JMenu m1 = new JMenu("View");
+		JMenuItem mi_refresh = new JMenuItem("Refresh");
 		JMenuItem mi_ins = new JMenuItem("Insert");
 		mi_ins.addActionListener(new ActionListener() {
 			@Override
@@ -204,7 +217,9 @@ public class DBEditor {
 		m0.add(mi_ins);
 		m0.add(mi_upd);
 		m0.add(mi_del);
+		m1.add(mi_refresh);
 		menuBar.add(m0);
+		menuBar.add(m1);
 		frame.setJMenuBar(menuBar);
 	}
 }
