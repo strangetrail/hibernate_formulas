@@ -12,11 +12,13 @@ import javax.swing.GroupLayout.Alignment;
 import javax.swing.table.TableModel;
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.LayoutStyle.ComponentPlacement;
 
 public class DBEditor {
 
 	private JFrame frame;
 	private JTable table;
+	private JScrollPane jspTable;
 	private FormulaManager fm;
 	ListSelectionModel s_model;
 	Integer changed_row;
@@ -80,85 +82,32 @@ public class DBEditor {
 		s_model = table.getSelectionModel();
 		changed_row = null;
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		InputMap im_table = table.getInputMap();
 		table.getModel().addTableModelListener(new TableModelListener() {
 			
 			@Override
 			public void tableChanged(TableModelEvent e) {
-				// TODO Auto-generated method stub
 				int row = e.getFirstRow();
-				int column = e.getColumn();
-				TableModel tm_table = (TableModel)e.getSource();
 				changed_row = row;
 			}
 		});
 		
-		im_table.put(KeyStroke.getKeyStroke("DOWN"), "DOWN");
-		im_table.put(KeyStroke.getKeyStroke("UP"), "UP");
-
-		ActionMap am_table = table.getActionMap();
-
-		am_table.put("DOWN", new AbstractAction() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				// TODO Auto-generated method stub
-				System.out.println("Changing Row!");
-				if (table.getSelectedRow() < table.getRowCount() - 1) {
-					table.changeSelection(table.getSelectedRow() + 1, 0, false, false);
-					//changed_row = table.getSelectedRow();
-				}
-			}
-		});
-		am_table.put("UP", new AbstractAction() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				// TODO Auto-generated method stub
-				System.out.println("Changing Row!");
-				if (table.getSelectedRow() > 0) {
-					table.changeSelection(table.getSelectedRow() - 1, 0, false, false);
-					//changed_row = table.getSelectedRow();
-				}
-			}
-		});
-
-		System.out.println(table.getMouseListeners());
-		for (MouseListener listener : table.getMouseListeners()) {
-			table.removeMouseListener(listener);
-		}
-		for (MouseMotionListener listener : table.getMouseMotionListeners()) {
-			table.removeMouseMotionListener(listener);
-		}
-
-		table.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				JTable table_source = (JTable)e.getSource();
-				int rowAtPoint = table_source.rowAtPoint(e.getPoint());
-				int columnAtPoint = table_source.columnAtPoint(e.getPoint());
-				if (rowAtPoint != -1 && rowAtPoint != table.getSelectedRow()) {
-					System.out.println("Changing Row!");
-				
-					table_source.changeSelection(rowAtPoint, columnAtPoint, false, false);
-					//changed_row = rowAtPoint;
-				}
-			}
-		});
 		table.changeSelection(0, 0, false, false);
+		jspTable = new JScrollPane(table);
 
 		GroupLayout groupLayout = new GroupLayout(frame.getContentPane());
 		groupLayout.setHorizontalGroup(
 			groupLayout.createParallelGroup(Alignment.LEADING)
 				.addGroup(groupLayout.createSequentialGroup()
-					.addGap(21)
-					.addComponent(table, GroupLayout.PREFERRED_SIZE, 407, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(22, Short.MAX_VALUE))
+					.addGap(20)
+					.addComponent(jspTable, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(23, Short.MAX_VALUE))
 		);
 		groupLayout.setVerticalGroup(
 			groupLayout.createParallelGroup(Alignment.LEADING)
 				.addGroup(groupLayout.createSequentialGroup()
-					.addGap(21)
-					.addComponent(table, GroupLayout.PREFERRED_SIZE, 200, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(21, Short.MAX_VALUE))
+					.addContainerGap()
+					.addComponent(jspTable, GroupLayout.PREFERRED_SIZE, 200, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(30, Short.MAX_VALUE))
 		);
 		frame.getContentPane().setLayout(groupLayout);
 		
