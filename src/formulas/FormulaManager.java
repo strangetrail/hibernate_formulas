@@ -12,16 +12,19 @@ import org.hibernate.*;
 import javax.persistence.criteria.*;
 
 public class FormulaManager { 
-	private static SessionFactory factory;
+	private static SessionFactory factory = null;
+	private static FormulaManager fm = null;
     public static FormulaManager initList()
     {
         try {
-            factory = new Configuration().configure().buildSessionFactory();
+            if (factory == null)
+				factory = new Configuration().configure().buildSessionFactory();
         } catch (Throwable ex) { 
             System.err.println("Failed to create sessionFactory object." + ex);
             throw new ExceptionInInitializerError(ex); 
         }
-        FormulaManager fm = new FormulaManager();
+        if (fm == null)
+        	fm = new FormulaManager();
         //HashSet set1 = new HashSet();
         //set1.add(new Symbol("a"));
         //set1.add(new Symbol("B"));
@@ -113,6 +116,7 @@ public class FormulaManager {
     		Formula f = new Formula();
     		f.setFormulaTex(f_tex);
     		f.setPageNum(f_pn);
+    		System.out.println("Saving formula with TeX - " + f_tex + " and page - " + f_pn);
     		session.save(f);
     		tx.commit();
     	} catch (HibernateException e) {

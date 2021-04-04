@@ -9,6 +9,7 @@ import java.awt.EventQueue;
 import java.awt.event.*;
 
 import javax.swing.GroupLayout.Alignment;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.*;
 import javax.swing.event.*;
@@ -20,9 +21,12 @@ public class DBEditor {
 	private JTable table;
 	private JScrollPane jspTable;
 	private FormulaManager fm;
-	ListSelectionModel s_model;
-	Integer changed_row;
-	List<Integer> changed_rows;
+	private ListSelectionModel s_model;
+	private Integer changed_row;
+	private List<Integer> changed_rows;
+	private TableModelListener tmlRefresh;
+	private Object [][]m;
+	private Object []m_columns;
 
 
 	/**
@@ -70,26 +74,28 @@ public class DBEditor {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		Object [][]m = init_data();
+		m = init_data();
+		m_columns = new String[] {
+				"Id", "TeX", "Page", "Result"
+			};
 		frame = new JFrame();
 		frame.setBounds(100, 100, 450, 300);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		table = new JTable(m, new String[] {
-				"Id", "TeX", "Page", "Result"
-			});
+		table = new JTable(m, m_columns);
 		table.setCellSelectionEnabled(true);
 		s_model = table.getSelectionModel();
 		changed_row = null;
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		table.getModel().addTableModelListener(new TableModelListener() {
+		tmlRefresh = new TableModelListener() {
 			
 			@Override
 			public void tableChanged(TableModelEvent e) {
 				int row = e.getFirstRow();
 				changed_row = row;
 			}
-		});
+		};
+		table.getModel().addTableModelListener(tmlRefresh);
 		
 		table.changeSelection(0, 0, false, false);
 		jspTable = new JScrollPane(table);
@@ -115,10 +121,18 @@ public class DBEditor {
 		JMenu m0 = new JMenu("Operations");
 		JMenu m1 = new JMenu("View");
 		JMenuItem mi_refresh = new JMenuItem("Refresh");
+		mi_refresh.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				m = init_data();
+				table.setModel(new DefaultTableModel(m, m_columns));
+				table.getModel().addTableModelListener(tmlRefresh);
+			}
+		});
 		JMenuItem mi_ins = new JMenuItem("Insert");
 		mi_ins.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
+				System.out.println("Inserting on " + changed_row + " from " + table.getRowCount());
 				if (changed_row == table.getRowCount()-1) {
 					fm.insertFormula((String)table.getValueAt(changed_row, Fields.TeX.getValue()),
 							Integer.parseInt((String)table.getValueAt(changed_row, Fields.Page.getValue())));
@@ -130,7 +144,7 @@ public class DBEditor {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				if ((changed_row != null) && (changed_row < table.getRowCount()-1)) {
-					String symbol_regex = "(\\w)";
+					String symbol_regex = "([a-z]|[A-Z])";
 					Pattern r = Pattern.compile(symbol_regex);
 					Matcher m = r.matcher(table.getValueAt(changed_row, Fields.TeX.getValue()).toString());
 					List<Integer> symbols_to_update = new ArrayList<Integer>();
