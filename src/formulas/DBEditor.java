@@ -23,6 +23,7 @@ public class DBEditor {
 	private FormulaManager fm;
 	private ListSelectionModel s_model;
 	private int changed_row;
+	private int selected_row;
 	private List<Integer> changed_rows;
 	private TableModelListener tmlRefresh;
 	private Object [][]m;
@@ -87,6 +88,7 @@ public class DBEditor {
 		table.setCellSelectionEnabled(true);
 		s_model = table.getSelectionModel();
 		changed_row = -1;
+		selected_row = -1;
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		tmlRefresh = new TableModelListener() {
 			@Override
@@ -110,6 +112,68 @@ public class DBEditor {
 			}
 		};
 		table.getModel().addTableModelListener(tmlRefresh);
+		
+		
+		
+		InputMap inputMap = table.getInputMap();
+		 
+        inputMap.put(KeyStroke.getKeyStroke("DOWN"), "DOWN");
+        inputMap.put(KeyStroke.getKeyStroke("UP"), "UP");
+ 
+        ActionMap actionMap = table.getActionMap();
+        actionMap.put("DOWN", new AbstractAction() {
+ 
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Changing Row!");
+                if (table.getSelectedRow() < table.getRowCount() - 1) {
+                    table.changeSelection(table.getSelectedRow() + 1, table.getSelectedColumn(), false, false);
+                    selected_row = table.getSelectedRow();
+                }
+            }
+        });
+ 
+        actionMap.put("UP", new AbstractAction() {
+ 
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Changing Row!");
+                if (table.getSelectedRow() > 0) {
+                    table.changeSelection(table.getSelectedRow() - 1, table.getSelectedColumn(), false, false);
+                    selected_row = table.getSelectedRow();
+                }
+            }
+        });
+ 
+        System.out.println(table.getMouseListeners());
+        for (MouseListener listener : table.getMouseListeners()) {
+            table.removeMouseListener(listener);
+        }
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        for (MouseMotionListener listener : table.getMouseMotionListeners()) {
+            table.removeMouseMotionListener(listener);
+        }
+         
+        table.addMouseListener(new MouseAdapter() {
+ 
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                JTable table = (JTable)e.getSource();
+ 
+                int rowAtPoint = table.rowAtPoint(e.getPoint());
+                int columnAtPoint = table.columnAtPoint(e.getPoint());
+                if (rowAtPoint != -1 && rowAtPoint != table.getSelectedRow()) {
+                    System.out.println("Changing Row!");
+                 
+                    table.changeSelection(rowAtPoint, columnAtPoint, false, false);
+                }
+                if (rowAtPoint != -1 && rowAtPoint == table.getSelectedRow()) {
+                	table.changeSelection(rowAtPoint, columnAtPoint, false, false);
+                }
+                selected_row = rowAtPoint;
+            }
+        });
+		
+		
+		
 		
 		table.changeSelection(0, 0, false, false);
 		jspTable = new JScrollPane(table);
@@ -216,9 +280,9 @@ public class DBEditor {
 		mi_del.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				if ((changed_row != -1) && (changed_row < table.getRowCount()-1)) {
-					fm.deleteFormula((Integer)table.getValueAt(changed_row, Fields.Id.getValue()));
-					changed_row = -1;
+				if ((selected_row != -1) && (selected_row < table.getRowCount()-1)) {
+					fm.deleteFormula((Integer)table.getValueAt(selected_row, Fields.Id.getValue()));
+					selected_row = -1;
 				}
 			}
 		});
