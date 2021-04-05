@@ -22,7 +22,7 @@ public class DBEditor {
 	private JScrollPane jspTable;
 	private FormulaManager fm;
 	private ListSelectionModel s_model;
-	private Integer changed_row;
+	private int changed_row;
 	private List<Integer> changed_rows;
 	private TableModelListener tmlRefresh;
 	private Object [][]m;
@@ -74,6 +74,7 @@ public class DBEditor {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
+		changed_rows = new ArrayList<Integer>();
 		m = init_data();
 		m_columns = new String[] {
 				"Id", "TeX", "Page", "Result"
@@ -85,14 +86,27 @@ public class DBEditor {
 		table = new JTable(m, m_columns);
 		table.setCellSelectionEnabled(true);
 		s_model = table.getSelectionModel();
-		changed_row = null;
+		changed_row = -1;
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		tmlRefresh = new TableModelListener() {
-			
 			@Override
 			public void tableChanged(TableModelEvent e) {
+				boolean already_listed = false;
 				int row = e.getFirstRow();
 				changed_row = row;
+				for (int item : changed_rows) {
+					System.out.println("Comparing " + item + " with " + changed_row);
+					if (item == changed_row) {
+						System.out.println("Found duplicate " + changed_row);
+						already_listed = true;
+						break;
+					}
+				}
+				System.out.println("Duplicate status now is " + already_listed);
+				if (!already_listed) {
+					System.out.println("Adding changed row " + changed_row);
+					changed_rows.add(changed_row);
+				}
 			}
 		};
 		table.getModel().addTableModelListener(tmlRefresh);
@@ -133,9 +147,28 @@ public class DBEditor {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				System.out.println("Inserting on " + changed_row + " from " + table.getRowCount());
-				if (changed_row == table.getRowCount()-1) {
-					fm.insertFormula((String)table.getValueAt(changed_row, Fields.TeX.getValue()),
-							Integer.parseInt((String)table.getValueAt(changed_row, Fields.Page.getValue())));
+				int row_number = 0;
+				boolean insertion_left = false;
+				
+				while (!insertion_left && (row_number < changed_rows.size())) {
+						insertion_left = changed_rows.get(row_number) == (table.getRowCount()-1);
+						if (insertion_left) {
+							changed_row = changed_rows.get(row_number);
+							System.out.println("Find insertion on " + row_number + " index");
+						}
+						row_number+=1;
+				}
+				if (row_number == changed_rows.size() && !insertion_left) {
+					System.out.println("Cleaning last changed row number " + changed_row);
+					changed_row = -1;
+				}
+				if (changed_row != -1) {
+					if (changed_row == table.getRowCount()-1) {
+						fm.insertFormula((String)table.getValueAt(changed_row, Fields.TeX.getValue()),
+								Integer.parseInt((String)table.getValueAt(changed_row, Fields.Page.getValue())));
+						changed_row = -1;
+						changed_rows.remove(row_number-1);
+					}
 				}
 			}
 		});
@@ -143,28 +176,39 @@ public class DBEditor {
 		mi_upd.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				if ((changed_row != null) && (changed_row < table.getRowCount()-1)) {
-					String symbol_regex = "([a-z]|[A-Z])";
-					Pattern r = Pattern.compile(symbol_regex);
-					Matcher m = r.matcher(table.getValueAt(changed_row, Fields.TeX.getValue()).toString());
-					List<Integer> symbols_to_update = new ArrayList<Integer>();
-					while (m.find()){
-						System.out.println("Found symbol " + m.group(0));
-						List<Symbol> stored_symbol = fm.find_symbol(m.group(0));
-						System.out.println("Already stored symbols: " + stored_symbol.size());
-						if (stored_symbol.size() > 0) {
-							fm.updateSymbol(stored_symbol.get(0).getId(),
-									(Integer)table.getValueAt(changed_row, Fields.Id.getValue()));
-							symbols_to_update.add(stored_symbol.get(0).getId());
-						} else {
-							Integer symb_id = fm.insertSymbol(m.group(0));
-							symbols_to_update.add(symb_id);
+				int row_number;
+				boolean insertion_left = false;
+				while ((changed_rows.size() > 0) && !insertion_left) {
+					row_number = changed_rows.size()-1;
+					changed_row = changed_rows.get(row_number);
+					if ((changed_row != -1) && (changed_row < table.getRowCount()-1)) {
+						String symbol_regex = "([a-z]|[A-Z])";
+						Pattern r = Pattern.compile(symbol_regex);
+						Matcher m = r.matcher(table.getValueAt(changed_row, Fields.TeX.getValue()).toString());
+						List<Integer> symbols_to_update = new ArrayList<Integer>();
+						while (m.find()){
+							System.out.println("Found symbol " + m.group(0));
+							List<Symbol> stored_symbol = fm.find_symbol(m.group(0));
+							System.out.println("Already stored symbols: " + stored_symbol.size());
+							if (stored_symbol.size() > 0) {
+								fm.updateSymbol(stored_symbol.get(0).getId(),
+										(Integer)table.getValueAt(changed_row, Fields.Id.getValue()));
+								symbols_to_update.add(stored_symbol.get(0).getId());
+							} else {
+								Integer symb_id = fm.insertSymbol(m.group(0));
+								symbols_to_update.add(symb_id);
+							}
 						}
+						fm.updateFormula((Integer)table.getValueAt(changed_row, Fields.Id.getValue()),
+								table.getValueAt(changed_row, Fields.TeX.getValue()).toString(),
+								Integer.parseInt(table.getValueAt(changed_row, Fields.Page.getValue()).toString()),
+								symbols_to_update);
+						
+						changed_rows.remove(row_number);
+						changed_row = -1;
 					}
-					fm.updateFormula((Integer)table.getValueAt(changed_row, Fields.Id.getValue()),
-							table.getValueAt(changed_row, Fields.TeX.getValue()).toString(),
-							Integer.parseInt(table.getValueAt(changed_row, Fields.Page.getValue()).toString()),
-							symbols_to_update);
+					if (changed_rows.size() == 1)
+						insertion_left = changed_rows.get(0) == (table.getRowCount()-1);
 				}
 			}
 		});
@@ -172,8 +216,9 @@ public class DBEditor {
 		mi_del.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				if ((changed_row != null) && (changed_row < table.getRowCount()-1)) {
+				if ((changed_row != -1) && (changed_row < table.getRowCount()-1)) {
 					fm.deleteFormula((Integer)table.getValueAt(changed_row, Fields.Id.getValue()));
+					changed_row = -1;
 				}
 			}
 		});

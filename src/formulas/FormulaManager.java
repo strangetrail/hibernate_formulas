@@ -95,6 +95,7 @@ public class FormulaManager {
     		formula.setFormulaTex(TeX);
     		formula.setPageNum(pageNumber);
     		formula.setSymbols(symb);
+    		formula.setResultSymbol(null);
     		session.update(formula);
     		tx.commit();
     	} catch (HibernateException he) {
@@ -116,6 +117,7 @@ public class FormulaManager {
     		Formula f = new Formula();
     		f.setFormulaTex(f_tex);
     		f.setPageNum(f_pn);
+    		f.setResultSymbol(null);
     		System.out.println("Saving formula with TeX - " + f_tex + " and page - " + f_pn);
     		session.save(f);
     		tx.commit();
