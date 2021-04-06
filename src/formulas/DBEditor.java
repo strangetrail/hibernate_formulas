@@ -283,6 +283,9 @@ public class DBEditor {
 				if ((selected_row != -1) && (selected_row < table.getRowCount()-1)) {
 					fm.deleteFormula((Integer)table.getValueAt(selected_row, Fields.Id.getValue()));
 					selected_row = -1;
+					m = init_data();
+					table.setModel(new DefaultTableModel(m, m_columns));
+					table.getModel().addTableModelListener(tmlRefresh);
 				}
 			}
 		});

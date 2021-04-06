@@ -16,13 +16,13 @@ public class FormulaManager {
 	private static FormulaManager fm = null;
     public static FormulaManager initList()
     {
-        try {
+        /*try {*/
             if (factory == null)
 				factory = new Configuration().configure().buildSessionFactory();
-        } catch (Throwable ex) { 
+        /*} catch (Throwable ex) { 
             System.err.println("Failed to create sessionFactory object." + ex);
             throw new ExceptionInInitializerError(ex); 
-        }
+        }*/
         if (fm == null)
         	fm = new FormulaManager();
         //HashSet set1 = new HashSet();
