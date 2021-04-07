@@ -95,7 +95,7 @@ public class FormulaManager {
     		formula.setFormulaTex(TeX);
     		formula.setPageNum(pageNumber);
     		formula.setSymbols(symb);
-    		formula.setResultSymbol(null);
+    		//formula.setResultSymbol(null);
     		session.update(formula);
     		tx.commit();
     	} catch (HibernateException he) {
@@ -117,7 +117,7 @@ public class FormulaManager {
     		Formula f = new Formula();
     		f.setFormulaTex(f_tex);
     		f.setPageNum(f_pn);
-    		f.setResultSymbol(null);
+    		//f.setResultSymbol(null);
     		System.out.println("Saving formula with TeX - " + f_tex + " and page - " + f_pn);
     		session.save(f);
     		tx.commit();
@@ -165,13 +165,6 @@ public class FormulaManager {
 				cs_result.add(item);
 		}
 		return cs_result;
-		/*Criteria cquery = session.createCriteria(Symbol.class);
-		cquery.add(Restrictions.like("symbolTex", s));
-		return cquery.list();*/
-		//String hql = "FROM Symbol WHERE symbolTex LIKE :symbol_letter";
-		//Query qhql = session.createQuery(hql);
-		//qhql.setParameter("symbol_letter", s);
-		//return qhql.list();
 	}
 	
     public Integer insertSymbol(String s_tex) {
@@ -195,6 +188,29 @@ public class FormulaManager {
 		return new_id;
     }
     
+    public Integer insertSymbol(String s_tex, List<Formula> result_list) {
+    	Session session = factory.openSession();
+    	Transaction tx = null;
+    	Integer new_id = null;
+    	
+    	try {
+    		tx = session.beginTransaction();
+    		Symbol s = new Symbol();
+    		s.setSymbolTex(s_tex);
+    		s.setFormulas(result_list);
+    		new_id = (Integer)session.save(s);
+    		tx.commit();
+    	} catch (HibernateException e) {
+    		if (tx != null)
+    			tx.rollback();
+    		e.printStackTrace();
+    	} finally {
+    		session.close();
+    	}
+		return new_id;
+    }
+
+    
     public void updateSymbol(Integer SymbolId, Integer formula_id)
     {
     	Session session = factory.openSession();
@@ -204,9 +220,29 @@ public class FormulaManager {
     		tx = session.beginTransaction();
     		Symbol symbol = session.get(Symbol.class, SymbolId);
     		Formula formula = session.get(Formula.class, formula_id);
-    		ArrayList ar_f = new ArrayList();
+    		ArrayList<Formula> ar_f = new ArrayList<Formula>();
     		ar_f.add(formula);
     		symbol.setFormulas(ar_f);
+    		session.update(symbol);
+    		tx.commit();
+    	} catch (HibernateException e) {
+    		if (tx != null)
+    			tx.rollback();
+    		e.printStackTrace();
+    	} finally {
+    		session.close();
+    	}
+    }
+    
+    public void updateSymbol(Integer SymbolId, List<Formula> formula_results)
+    {
+    	Session session = factory.openSession();
+    	Transaction tx = null;
+    	
+    	try {
+    		tx = session.beginTransaction();
+    		Symbol symbol = session.get(Symbol.class, SymbolId);
+    		symbol.setFormulas(formula_results);
     		session.update(symbol);
     		tx.commit();
     	} catch (HibernateException e) {
@@ -228,18 +264,6 @@ public class FormulaManager {
     		tx = session.beginTransaction();
     		List formulas =	session.createQuery("FROM Formula ORDER BY pageNum ASC").list();
 
-    		//for (Iterator iter1 = formulas.iterator(); iter1.hasNext(); ) {
-    		/*for (Object item: formulas) {
-    			//Formula formula = (Formula) iter1.next();
-    			Formula formula = (Formula) item;
-    			System.out.print("TeX: " + formula.getFormulaTex());
-    			System.out.println(" Page: " + formula.getPageNum());
-    			Set symbols = formula.getSymbols();
-        		for (Object item2: symbols) {
-        			Symbol symbol = (Symbol) item2;
-        			System.out.println("Symbol TeX: " + symbol.getSymbolTex());
-        		}
-    		}*/
     		tx.commit();
     		return formulas;
     	} catch (HibernateException e)
@@ -254,5 +278,31 @@ public class FormulaManager {
     	}
     	return null;
     }
+    public List listFormulas(String TeX)
+    {
+    	Session session = factory.openSession();
+    	Transaction tx = null;
+    	
+    	try
+    	{
+    		tx = session.beginTransaction();
+    		System.out.println("Searching for " + TeX);
+    		List formulas =	session.createQuery("FROM Formula WHERE formulaTex LIKE '%" + TeX + "%' ORDER BY pageNum ASC").list();
+
+    		tx.commit();
+    		return formulas;
+    	} catch (HibernateException e)
+    	{
+    		if (tx != null)
+    			tx.rollback();
+    		e.printStackTrace();
+    	}
+    	finally
+    	{
+    		session.close();
+    	}
+    	return null;
+    }
+
 
 }
