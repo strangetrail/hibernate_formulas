@@ -3,7 +3,8 @@ package formulas;
 import java.util.*;
 import java.util.regex.*;
 
-import formulas.Formula.Fields;
+import formulas.Formula;
+import formulas.Symbol;
 import java.awt.EventQueue;
 
 import java.awt.event.*;
@@ -20,14 +21,17 @@ public class DBEditor {
 	private JFrame frame;
 	private JTable table;
 	private JScrollPane jspTable;
+	private JScrollPane jspTable_symbols;
 	private FormulaManager fm;
 	private ListSelectionModel s_model;
 	private int changed_row;
 	private int selected_row;
+	private int selected_row_s;
 	private List<Integer> changed_rows;
 	private TableModelListener tmlRefresh;
-	private Object [][]m;
-	private Object []m_columns;
+	private Object [][]m, s;
+	private Object []m_columns, s_columns;
+	private JTable table_symbols;
 
 
 	/**
@@ -60,13 +64,27 @@ public class DBEditor {
 		Object [][] model_data = new Object [l.size()+1][4];
 		int i = 0,j = 0;
 		for (Formula item : l) {
-			model_data[i][Fields.Id.getValue()] = item.getId();
-			model_data[i][Fields.TeX.getValue()] = item.getFormulaTex();
-			model_data[i][Fields.Page.getValue()] = item.getPageNum();
-			model_data[i][Fields.Result.getValue()] = item.getResultSymbol();
+			model_data[i][Formula.Fields.Id.getValue()] = item.getId();
+			model_data[i][Formula.Fields.TeX.getValue()] = item.getFormulaTex();
+			model_data[i][Formula.Fields.Page.getValue()] = item.getPageNum();
+			model_data[i][Formula.Fields.Result.getValue()] = item.getResultSymbol();
 			i+=1;
 		}
 		for (j=0; j<4; j++)
+			model_data[i][j] = null; 
+		return model_data;
+	}
+	
+	private Object [][] initializeSymbolTable() {
+		List<Symbol> l = fm.listSymbols();
+		Object [][] model_data = new Object [l.size()+1][2];
+		int i = 0,j = 0;
+		for (Symbol item : l) {
+			model_data[i][Symbol.Fields.Id.getValue()] = item.getId();
+			model_data[i][Symbol.Fields.TeX.getValue()] = item.getSymbolTex();
+			i+=1;
+		}
+		for (j=0; j<2; j++)
 			model_data[i][j] = null; 
 		return model_data;
 	}
@@ -77,11 +95,15 @@ public class DBEditor {
 	private void initialize() {
 		changed_rows = new ArrayList<Integer>();
 		m = init_data();
+		s = initializeSymbolTable();
+		s_columns = new String[] {
+				"Id", "Tex"
+		};
 		m_columns = new String[] {
 				"Id", "TeX", "Page", "Result"
 			};
 		frame = new JFrame();
-		frame.setBounds(100, 100, 450, 300);
+		frame.setBounds(100, 100, 720, 415);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		table = new JTable(m, m_columns);
@@ -177,6 +199,66 @@ public class DBEditor {
 		
 		table.changeSelection(0, 0, false, false);
 		jspTable = new JScrollPane(table);
+		
+		table_symbols = new JTable(s, s_columns);
+		
+		
+		InputMap inputMap_symbols = table_symbols.getInputMap();
+		 
+        inputMap_symbols.put(KeyStroke.getKeyStroke("DOWN"), "DOWN");
+        inputMap_symbols.put(KeyStroke.getKeyStroke("UP"), "UP");
+        ActionMap actionMap_symbols = table_symbols.getActionMap();
+        actionMap.put("DOWN", new AbstractAction() {
+        	 
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Changing Row!");
+                if (table_symbols.getSelectedRow() < table_symbols.getRowCount() - 1) {
+                    table_symbols.changeSelection(table_symbols.getSelectedRow() + 1, table_symbols.getSelectedColumn(), false, false);
+                    selected_row_s = table_symbols.getSelectedRow();
+                }
+            }
+        });
+ 
+        actionMap.put("UP", new AbstractAction() {
+ 
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Changing Row!");
+                if (table_symbols.getSelectedRow() > 0) {
+                    table_symbols.changeSelection(table_symbols.getSelectedRow() - 1, table_symbols.getSelectedColumn(), false, false);
+                    selected_row_s = table_symbols.getSelectedRow();
+                }
+            }
+        });
+        System.out.println(table_symbols.getMouseListeners());
+        for (MouseListener listener : table_symbols.getMouseListeners()) {
+            table_symbols.removeMouseListener(listener);
+        }
+        table_symbols.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        for (MouseMotionListener listener : table_symbols.getMouseMotionListeners()) {
+            table_symbols.removeMouseMotionListener(listener);
+        }
+         
+        table_symbols.addMouseListener(new MouseAdapter() {
+ 
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                JTable table = (JTable)e.getSource();
+ 
+                int rowAtPoint = table.rowAtPoint(e.getPoint());
+                int columnAtPoint = table.columnAtPoint(e.getPoint());
+                if (rowAtPoint != -1 && rowAtPoint != table.getSelectedRow()) {
+                    System.out.println("Changing Row!");
+                 
+                    table.changeSelection(rowAtPoint, columnAtPoint, false, false);
+                }
+                if (rowAtPoint != -1 && rowAtPoint == table.getSelectedRow()) {
+                	table.changeSelection(rowAtPoint, columnAtPoint, false, false);
+                }
+                selected_row_s = rowAtPoint;
+            }
+        });
+		
+		jspTable_symbols = new JScrollPane(table_symbols);
 
 		GroupLayout groupLayout = new GroupLayout(frame.getContentPane());
 		groupLayout.setHorizontalGroup(
@@ -184,14 +266,18 @@ public class DBEditor {
 				.addGroup(groupLayout.createSequentialGroup()
 					.addGap(20)
 					.addComponent(jspTable, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(23, Short.MAX_VALUE))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addComponent(jspTable_symbols, GroupLayout.DEFAULT_SIZE, 276, Short.MAX_VALUE)
+					.addContainerGap())
 		);
 		groupLayout.setVerticalGroup(
 			groupLayout.createParallelGroup(Alignment.LEADING)
 				.addGroup(groupLayout.createSequentialGroup()
 					.addContainerGap()
-					.addComponent(jspTable, GroupLayout.PREFERRED_SIZE, 200, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(30, Short.MAX_VALUE))
+					.addGroup(groupLayout.createParallelGroup(Alignment.BASELINE)
+						.addComponent(jspTable, GroupLayout.PREFERRED_SIZE, 200, GroupLayout.PREFERRED_SIZE)
+						.addComponent(jspTable_symbols, GroupLayout.PREFERRED_SIZE, 197, GroupLayout.PREFERRED_SIZE))
+					.addContainerGap(145, Short.MAX_VALUE))
 		);
 		frame.getContentPane().setLayout(groupLayout);
 		
@@ -228,8 +314,8 @@ public class DBEditor {
 				}
 				if (changed_row != -1) {
 					if (changed_row == table.getRowCount()-1) {
-						fm.insertFormula((String)table.getValueAt(changed_row, Fields.TeX.getValue()),
-								Integer.parseInt((String)table.getValueAt(changed_row, Fields.Page.getValue())));
+						fm.insertFormula((String)table.getValueAt(changed_row, Formula.Fields.TeX.getValue()),
+								Integer.parseInt((String)table.getValueAt(changed_row, Formula.Fields.Page.getValue())));
 						changed_row = -1;
 						changed_rows.remove(row_number-1);
 					}
@@ -251,7 +337,7 @@ public class DBEditor {
 					if ((changed_row != -1) && (changed_row < table.getRowCount()-1)) {
 						String symbol_regex = "([a-z]|[A-Z])";
 						String result_regex = "^([A-Z]|[a-z])=";
-						String formula_TeX = table.getValueAt(changed_row, Fields.TeX.getValue()).toString();
+						String formula_TeX = table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString();
 						Pattern r = Pattern.compile(symbol_regex);
 						Pattern r_result = Pattern.compile(result_regex);
 						Matcher m = r.matcher(formula_TeX);
@@ -292,9 +378,9 @@ public class DBEditor {
 								symbols_to_update.add(symb_id);
 							}
 						}
-						fm.updateFormula((Integer)table.getValueAt(changed_row, Fields.Id.getValue()),
-								table.getValueAt(changed_row, Fields.TeX.getValue()).toString(),
-								Integer.parseInt(table.getValueAt(changed_row, Fields.Page.getValue()).toString()),
+						fm.updateFormula((Integer)table.getValueAt(changed_row, Formula.Fields.Id.getValue()),
+								table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString(),
+								Integer.parseInt(table.getValueAt(changed_row, Formula.Fields.Page.getValue()).toString()),
 								symbols_to_update);
 						
 						changed_rows.remove(row_number);
@@ -310,7 +396,7 @@ public class DBEditor {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				if ((selected_row != -1) && (selected_row < table.getRowCount()-1)) {
-					fm.deleteFormula((Integer)table.getValueAt(selected_row, Fields.Id.getValue()));
+					fm.deleteFormula((Integer)table.getValueAt(selected_row, Formula.Fields.Id.getValue()));
 					selected_row = -1;
 					m = init_data();
 					table.setModel(new DefaultTableModel(m, m_columns));
@@ -318,9 +404,21 @@ public class DBEditor {
 				}
 			}
 		});
+		JMenuItem mi_del_s = new JMenuItem("Delete symbol");
+		mi_del_s.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				if ((selected_row_s != -1) && (selected_row_s < table_symbols.getRowCount()-1)) {
+					fm.deleteSymbol((Integer)table_symbols.getValueAt(selected_row_s, Symbol.Fields.Id.getValue()));
+					selected_row_s = -1;
+					s = initializeSymbolTable();
+					table_symbols.setModel(new DefaultTableModel(s, s_columns));
+				}
+			}
+		});
 		m0.add(mi_ins);
 		m0.add(mi_upd);
 		m0.add(mi_del);
+		m0.add(mi_del_s);
 		m1.add(mi_refresh);
 		menuBar.add(m0);
 		menuBar.add(m1);

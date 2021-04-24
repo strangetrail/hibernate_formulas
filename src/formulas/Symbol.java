@@ -3,6 +3,18 @@ package formulas;
 import java.util.List;
 
 public class Symbol {
+	public enum Fields {
+		Id(0), TeX(1);
+		
+		private final int value;
+	    private Fields(int value) {
+	        this.value = value;
+	    }
+
+	    public int getValue() {
+	        return value;
+	    }
+	};
 	private int id;
 	private String symbolTex;
 	private List formulas;

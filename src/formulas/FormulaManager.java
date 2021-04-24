@@ -149,6 +149,24 @@ public class FormulaManager {
     	}
     	
     }
+    public void deleteSymbol(Integer symbol_id) {
+    	Session session = factory.openSession();
+    	Transaction tx = null;
+    	
+    	try {
+    		tx = session.beginTransaction();
+    		Symbol s = session.get(Symbol.class, symbol_id);
+    		session.delete(s);
+    		tx.commit();
+    	} catch (HibernateException e) {
+    		if (tx != null)
+    			tx.rollback();
+    		e.printStackTrace();
+    	} finally {
+    		session.close();
+    	}
+    	
+    }
 
 	public List<Symbol> find_symbol(String s) {
 		Session session = factory.openSession();
@@ -278,6 +296,32 @@ public class FormulaManager {
     	}
     	return null;
     }
+
+    public List<Symbol> listSymbols() {
+    	Session session = factory.openSession();
+    	Transaction tx = null;
+    	
+    	try
+    	{
+    		tx = session.beginTransaction();
+    		List<Symbol> symbols = session.createQuery("FROM Symbol").list();
+
+    		tx.commit();
+    		return symbols;
+    	} catch (HibernateException e)
+    	{
+    		if (tx != null)
+    			tx.rollback();
+    		e.printStackTrace();
+    	}
+    	finally
+    	{
+    		session.close();
+    	}
+    	return null;
+    }
+
+    
     public List listFormulas(String TeX)
     {
     	Session session = factory.openSession();
@@ -303,6 +347,7 @@ public class FormulaManager {
     	}
     	return null;
     }
+    
 
 
 }
