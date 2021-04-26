@@ -88,55 +88,66 @@ public class DBEditor {
 			model_data[i][j] = null; 
 		return model_data;
 	}
-	
-	/**
-	 * Initialize the contents of the frame.
-	 */
-	private void initialize() {
-		changed_rows = new ArrayList<Integer>();
-		m = init_data();
-		s = initializeSymbolTable();
-		s_columns = new String[] {
-				"Id", "Tex"
-		};
-		m_columns = new String[] {
-				"Id", "TeX", "Page", "Result"
-			};
-		frame = new JFrame();
-		frame.setBounds(100, 100, 720, 415);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		table = new JTable(m, m_columns);
-		table.setCellSelectionEnabled(true);
-		s_model = table.getSelectionModel();
-		changed_row = -1;
-		selected_row = -1;
-		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		tmlRefresh = new TableModelListener() {
-			@Override
-			public void tableChanged(TableModelEvent e) {
-				boolean already_listed = false;
-				int row = e.getFirstRow();
-				changed_row = row;
-				for (int item : changed_rows) {
-					System.out.println("Comparing " + item + " with " + changed_row);
-					if (item == changed_row) {
-						System.out.println("Found duplicate " + changed_row);
-						already_listed = true;
-						break;
-					}
-				}
-				System.out.println("Duplicate status now is " + already_listed);
-				if (!already_listed) {
-					System.out.println("Adding changed row " + changed_row);
-					changed_rows.add(changed_row);
-				}
-			}
-		};
-		table.getModel().addTableModelListener(tmlRefresh);
+	private void initializeListenersSymbol() {
+		InputMap inputMap_symbols = table_symbols.getInputMap();
+		 
+        inputMap_symbols.put(KeyStroke.getKeyStroke("DOWN"), "DOWN");
+        inputMap_symbols.put(KeyStroke.getKeyStroke("UP"), "UP");
+        ActionMap actionMap_symbols = table_symbols.getActionMap();
+        actionMap_symbols.put("DOWN", new AbstractAction() {
+        	 
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Changing Row!");
+                if (table_symbols.getSelectedRow() < table_symbols.getRowCount() - 1) {
+                    table_symbols.changeSelection(table_symbols.getSelectedRow() + 1, table_symbols.getSelectedColumn(), false, false);
+                    selected_row_s = table_symbols.getSelectedRow();
+                }
+            }
+        });
+ 
+        actionMap_symbols.put("UP", new AbstractAction() {
+ 
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Changing Row!");
+                if (table_symbols.getSelectedRow() > 0) {
+                    table_symbols.changeSelection(table_symbols.getSelectedRow() - 1, table_symbols.getSelectedColumn(), false, false);
+                    selected_row_s = table_symbols.getSelectedRow();
+                }
+            }
+        });
+        System.out.println(table_symbols.getMouseListeners());
+        for (MouseListener listener : table_symbols.getMouseListeners()) {
+            table_symbols.removeMouseListener(listener);
+        }
+        table_symbols.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        for (MouseMotionListener listener : table_symbols.getMouseMotionListeners()) {
+            table_symbols.removeMouseMotionListener(listener);
+        }
+         
+        table_symbols.addMouseListener(new MouseAdapter() {
+ 
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                JTable table = (JTable)e.getSource();
+ 
+                int rowAtPoint = table.rowAtPoint(e.getPoint());
+                int columnAtPoint = table.columnAtPoint(e.getPoint());
+                if (rowAtPoint != -1 && rowAtPoint != table.getSelectedRow()) {
+                    System.out.println("Changing Row!");
+                 
+                    table.changeSelection(rowAtPoint, columnAtPoint, false, false);
+                }
+                if (rowAtPoint != -1 && rowAtPoint == table.getSelectedRow()) {
+                	table.changeSelection(rowAtPoint, columnAtPoint, false, false);
+                }
+                selected_row_s = rowAtPoint;
+            }
+        });
 		
-		
-		
+	}
+	
+	private void initializeListenersFormula(){
 		InputMap inputMap = table.getInputMap();
 		 
         inputMap.put(KeyStroke.getKeyStroke("DOWN"), "DOWN");
@@ -194,6 +205,58 @@ public class DBEditor {
             }
         });
 		
+	}
+	
+	/**
+	 * Initialize the contents of the frame.
+	 */
+	private void initialize() {
+		changed_rows = new ArrayList<Integer>();
+		m = init_data();
+		s = initializeSymbolTable();
+		s_columns = new String[] {
+				"Id", "Tex"
+		};
+		m_columns = new String[] {
+				"Id", "TeX", "Page", "Result"
+			};
+		frame = new JFrame();
+		frame.setBounds(100, 100, 720, 415);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+		table = new JTable(m, m_columns);
+		table.setCellSelectionEnabled(true);
+		s_model = table.getSelectionModel();
+		changed_row = -1;
+		selected_row = -1;
+		selected_row_s = -1;
+		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		tmlRefresh = new TableModelListener() {
+			@Override
+			public void tableChanged(TableModelEvent e) {
+				boolean already_listed = false;
+				int row = e.getFirstRow();
+				changed_row = row;
+				for (int item : changed_rows) {
+					System.out.println("Comparing " + item + " with " + changed_row);
+					if (item == changed_row) {
+						System.out.println("Found duplicate " + changed_row);
+						already_listed = true;
+						break;
+					}
+				}
+				System.out.println("Duplicate status now is " + already_listed);
+				if (!already_listed) {
+					System.out.println("Adding changed row " + changed_row);
+					changed_rows.add(changed_row);
+				}
+			}
+		};
+		table.getModel().addTableModelListener(tmlRefresh);
+		
+		
+		initializeListenersFormula();
+		
 		
 		
 		
@@ -202,61 +265,7 @@ public class DBEditor {
 		
 		table_symbols = new JTable(s, s_columns);
 		
-		
-		InputMap inputMap_symbols = table_symbols.getInputMap();
-		 
-        inputMap_symbols.put(KeyStroke.getKeyStroke("DOWN"), "DOWN");
-        inputMap_symbols.put(KeyStroke.getKeyStroke("UP"), "UP");
-        ActionMap actionMap_symbols = table_symbols.getActionMap();
-        actionMap.put("DOWN", new AbstractAction() {
-        	 
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("Changing Row!");
-                if (table_symbols.getSelectedRow() < table_symbols.getRowCount() - 1) {
-                    table_symbols.changeSelection(table_symbols.getSelectedRow() + 1, table_symbols.getSelectedColumn(), false, false);
-                    selected_row_s = table_symbols.getSelectedRow();
-                }
-            }
-        });
- 
-        actionMap.put("UP", new AbstractAction() {
- 
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("Changing Row!");
-                if (table_symbols.getSelectedRow() > 0) {
-                    table_symbols.changeSelection(table_symbols.getSelectedRow() - 1, table_symbols.getSelectedColumn(), false, false);
-                    selected_row_s = table_symbols.getSelectedRow();
-                }
-            }
-        });
-        System.out.println(table_symbols.getMouseListeners());
-        for (MouseListener listener : table_symbols.getMouseListeners()) {
-            table_symbols.removeMouseListener(listener);
-        }
-        table_symbols.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        for (MouseMotionListener listener : table_symbols.getMouseMotionListeners()) {
-            table_symbols.removeMouseMotionListener(listener);
-        }
-         
-        table_symbols.addMouseListener(new MouseAdapter() {
- 
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                JTable table = (JTable)e.getSource();
- 
-                int rowAtPoint = table.rowAtPoint(e.getPoint());
-                int columnAtPoint = table.columnAtPoint(e.getPoint());
-                if (rowAtPoint != -1 && rowAtPoint != table.getSelectedRow()) {
-                    System.out.println("Changing Row!");
-                 
-                    table.changeSelection(rowAtPoint, columnAtPoint, false, false);
-                }
-                if (rowAtPoint != -1 && rowAtPoint == table.getSelectedRow()) {
-                	table.changeSelection(rowAtPoint, columnAtPoint, false, false);
-                }
-                selected_row_s = rowAtPoint;
-            }
-        });
+		initializeListenersSymbol();
 		
 		jspTable_symbols = new JScrollPane(table_symbols);
 
@@ -290,6 +299,8 @@ public class DBEditor {
 				m = init_data();
 				table.setModel(new DefaultTableModel(m, m_columns));
 				table.getModel().addTableModelListener(tmlRefresh);
+				s = initializeSymbolTable();
+				table_symbols.setModel(new DefaultTableModel(s, s_columns));
 			}
 		});
 		JMenuItem mi_ins = new JMenuItem("Insert");
@@ -314,6 +325,7 @@ public class DBEditor {
 				}
 				if (changed_row != -1) {
 					if (changed_row == table.getRowCount()-1) {
+						System.out.println("Inserting new formula");
 						fm.insertFormula((String)table.getValueAt(changed_row, Formula.Fields.TeX.getValue()),
 								Integer.parseInt((String)table.getValueAt(changed_row, Formula.Fields.Page.getValue())));
 						changed_row = -1;
@@ -343,6 +355,7 @@ public class DBEditor {
 						Matcher m = r.matcher(formula_TeX);
 						Matcher m_result = r_result.matcher(formula_TeX);
 						List<Integer> symbols_to_update = new ArrayList<Integer>();
+						System.out.println("Searching for formula " + formula_TeX);
 						List<Formula> result_list = fm.listFormulas(formula_TeX);
 						System.out.println("Result list length is: " + result_list.size());
 						if (m_result.find())

@@ -260,7 +260,9 @@ public class FormulaManager {
     	try {
     		tx = session.beginTransaction();
     		Symbol symbol = session.get(Symbol.class, SymbolId);
-    		symbol.setFormulas(formula_results);
+    		List<Formula> formulasWithResult = symbol.getFormulas();
+    		formulasWithResult.add(formula_results.get(0));
+    		symbol.setFormulas(formulasWithResult);
     		session.update(symbol);
     		tx.commit();
     	} catch (HibernateException e) {
