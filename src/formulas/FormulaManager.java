@@ -261,7 +261,16 @@ public class FormulaManager {
     		tx = session.beginTransaction();
     		Symbol symbol = session.get(Symbol.class, SymbolId);
     		List<Formula> formulasWithResult = symbol.getFormulas();
-    		formulasWithResult.add(formula_results.get(0));
+    		Boolean resultAlreadyExists = false;
+    		for (Formula item : formulasWithResult) {
+    			if (item.getId() == formula_results.get(0).getId()) {
+    				resultAlreadyExists = true;
+    				break;
+    			}
+    		}
+    		if (!resultAlreadyExists) {
+    			formulasWithResult.add(formula_results.get(0));
+    		}
     		symbol.setFormulas(formulasWithResult);
     		session.update(symbol);
     		tx.commit();

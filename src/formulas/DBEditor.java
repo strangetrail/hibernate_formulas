@@ -22,6 +22,7 @@ public class DBEditor {
 	private JTable table;
 	private JScrollPane jspTable;
 	private JScrollPane jspTable_symbols;
+	private JMenuItem mi_upd, mi_ins, mi_del, mi_del_s, mi_refresh;
 	private FormulaManager fm;
 	private ListSelectionModel s_model;
 	private int changed_row;
@@ -207,6 +208,180 @@ public class DBEditor {
 		
 	}
 	
+	private void addDeleteActionListener() {
+		mi_del.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				if ((selected_row != -1) && (selected_row < table.getRowCount()-1)) {
+					fm.deleteFormula((Integer)table.getValueAt(selected_row, Formula.Fields.Id.getValue()));
+					selected_row = -1;
+					m = init_data();
+					table.setModel(new DefaultTableModel(m, m_columns));
+					table.getModel().addTableModelListener(tmlRefresh);
+				}
+			}
+		});
+	}
+	
+	private void addDeleteSymbolActionListenenr() {
+		mi_del_s.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				if ((selected_row_s != -1) && (selected_row_s < table_symbols.getRowCount()-1)) {
+					fm.deleteSymbol((Integer)table_symbols.getValueAt(selected_row_s, Symbol.Fields.Id.getValue()));
+					selected_row_s = -1;
+					s = initializeSymbolTable();
+					table_symbols.setModel(new DefaultTableModel(s, s_columns));
+				}
+			}
+		});
+	}
+	
+	private void addInsertActionListener() {
+		mi_ins.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				System.out.println("Inserting on " + changed_row + " from " + table.getRowCount());
+				int row_number = 0;
+				boolean insertion_left = false;
+				
+				while (!insertion_left && (row_number < changed_rows.size())) {
+						insertion_left = changed_rows.get(row_number) == (table.getRowCount()-1);
+						if (insertion_left) {
+							changed_row = changed_rows.get(row_number);
+							System.out.println("Find insertion on " + row_number + " index");
+						}
+						row_number+=1;
+				}
+				if (row_number == changed_rows.size() && !insertion_left) {
+					System.out.println("Cleaning last changed row number " + changed_row);
+					changed_row = -1;
+				}
+				if (changed_row != -1) {
+					if (changed_row == table.getRowCount()-1) {
+						System.out.println("Inserting new formula");
+						fm.insertFormula((String)table.getValueAt(changed_row, Formula.Fields.TeX.getValue()),
+								Integer.parseInt((String)table.getValueAt(changed_row, Formula.Fields.Page.getValue())));
+						changed_row = -1;
+						changed_rows.remove(row_number-1);
+					}
+				}
+			}
+		});
+	}
+	
+	private void addUpdateActionListenener() {
+		mi_upd.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				int row_number;
+				Integer symb_id;
+				String found_result = null;
+				int updateResult = -1;
+				boolean insertion_left = false;
+				while ((changed_rows.size() > 0) && !insertion_left) {
+					row_number = changed_rows.size()-1;
+					changed_row = changed_rows.get(row_number);
+					if ((changed_row != -1) && (changed_row < table.getRowCount()-1)) {
+						String symbol_regex = "([a-z]|[A-Z])";
+						String result_regex = "^([A-Z]|[a-z])=";
+						String formula_TeX = table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString();
+						Pattern r = Pattern.compile(symbol_regex);
+						Pattern r_result = Pattern.compile(result_regex);
+						Matcher m = r.matcher(formula_TeX);
+						Matcher m_result = r_result.matcher(formula_TeX);
+						List<Integer> symbols_to_update = new ArrayList<Integer>();
+						fm.updateFormula((Integer)table.getValueAt(changed_row, Formula.Fields.Id.getValue()),
+								formula_TeX,
+								Integer.parseInt(table.getValueAt(changed_row, Formula.Fields.Page.getValue()).toString()));
+						System.out.println("Searching for formula " + formula_TeX);
+						List<Formula> result_list = fm.listFormulas(formula_TeX);
+						System.out.println("Result list length is: " + result_list.size());
+						if (m_result.find())
+							found_result = m_result.group(1);
+						else
+							found_result = null;
+						while (m.find()){
+							System.out.println("Found symbol " + m.group(0));
+							List<Symbol> stored_symbol = fm.find_symbol(m.group(0));
+							System.out.println("Already stored symbols: " + stored_symbol.size());
+							if (found_result != null) {
+								System.out.println("Comparing " + found_result + " and " + m.group(0));
+								updateResult = found_result.compareTo(m.group(0));
+								System.out.println("Results to update: " + updateResult);
+							}
+							else
+								updateResult = -1;
+							if (stored_symbol.size() > 0) {
+								//if (table.getValueAt(changed_row, Formula.Fields.Result.getValue()).toString().compareTo("")==0) {
+									if (updateResult == 0) {
+										System.out.println("Updating result symbol.");
+										fm.updateSymbol(stored_symbol.get(0).getId(),
+												result_list);
+									}
+								//}
+								/*else
+									fm.updateSymbol(stored_symbol.get(0).getId(),
+											(Integer)table.getValueAt(changed_row, Fields.Id.getValue()));*/
+								symbols_to_update.add(stored_symbol.get(0).getId());
+							} else {
+								if (updateResult == 0)
+									symb_id = fm.insertSymbol(m.group(0), result_list);
+								else
+									symb_id = fm.insertSymbol(m.group(0));
+								symbols_to_update.add(symb_id);
+							}
+						}
+						fm.updateFormula((Integer)table.getValueAt(changed_row, Formula.Fields.Id.getValue()),
+								table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString(),
+								Integer.parseInt(table.getValueAt(changed_row, Formula.Fields.Page.getValue()).toString()),
+								symbols_to_update);
+						
+						changed_rows.remove(row_number);
+						changed_row = -1;
+					}
+					if (changed_rows.size() == 1)
+						insertion_left = changed_rows.get(0) == (table.getRowCount()-1);
+				}
+			}
+		});		
+	}
+	
+	private void addRefreshActionListener() {
+		mi_refresh.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				m = init_data();
+				table.setModel(new DefaultTableModel(m, m_columns));
+				table.getModel().addTableModelListener(tmlRefresh);
+				s = initializeSymbolTable();
+				table_symbols.setModel(new DefaultTableModel(s, s_columns));
+			}
+		});
+	}
+	
+	private void createTableModelListener() {
+		tmlRefresh = new TableModelListener() {
+			@Override
+			public void tableChanged(TableModelEvent e) {
+				boolean already_listed = false;
+				int row = e.getFirstRow();
+				changed_row = row;
+				for (int item : changed_rows) {
+					System.out.println("Comparing " + item + " with " + changed_row);
+					if (item == changed_row) {
+						System.out.println("Found duplicate " + changed_row);
+						already_listed = true;
+						break;
+					}
+				}
+				System.out.println("Duplicate status now is " + already_listed);
+				if (!already_listed) {
+					System.out.println("Adding changed row " + changed_row);
+					changed_rows.add(changed_row);
+				}
+			}
+		};
+	}
+	
 	/**
 	 * Initialize the contents of the frame.
 	 */
@@ -231,27 +406,7 @@ public class DBEditor {
 		selected_row = -1;
 		selected_row_s = -1;
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		tmlRefresh = new TableModelListener() {
-			@Override
-			public void tableChanged(TableModelEvent e) {
-				boolean already_listed = false;
-				int row = e.getFirstRow();
-				changed_row = row;
-				for (int item : changed_rows) {
-					System.out.println("Comparing " + item + " with " + changed_row);
-					if (item == changed_row) {
-						System.out.println("Found duplicate " + changed_row);
-						already_listed = true;
-						break;
-					}
-				}
-				System.out.println("Duplicate status now is " + already_listed);
-				if (!already_listed) {
-					System.out.println("Adding changed row " + changed_row);
-					changed_rows.add(changed_row);
-				}
-			}
-		};
+		createTableModelListener();
 		table.getModel().addTableModelListener(tmlRefresh);
 		
 		
@@ -293,141 +448,16 @@ public class DBEditor {
 		JMenuBar menuBar = new JMenuBar();
 		JMenu m0 = new JMenu("Operations");
 		JMenu m1 = new JMenu("View");
-		JMenuItem mi_refresh = new JMenuItem("Refresh");
-		mi_refresh.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				m = init_data();
-				table.setModel(new DefaultTableModel(m, m_columns));
-				table.getModel().addTableModelListener(tmlRefresh);
-				s = initializeSymbolTable();
-				table_symbols.setModel(new DefaultTableModel(s, s_columns));
-			}
-		});
-		JMenuItem mi_ins = new JMenuItem("Insert");
-		mi_ins.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				System.out.println("Inserting on " + changed_row + " from " + table.getRowCount());
-				int row_number = 0;
-				boolean insertion_left = false;
-				
-				while (!insertion_left && (row_number < changed_rows.size())) {
-						insertion_left = changed_rows.get(row_number) == (table.getRowCount()-1);
-						if (insertion_left) {
-							changed_row = changed_rows.get(row_number);
-							System.out.println("Find insertion on " + row_number + " index");
-						}
-						row_number+=1;
-				}
-				if (row_number == changed_rows.size() && !insertion_left) {
-					System.out.println("Cleaning last changed row number " + changed_row);
-					changed_row = -1;
-				}
-				if (changed_row != -1) {
-					if (changed_row == table.getRowCount()-1) {
-						System.out.println("Inserting new formula");
-						fm.insertFormula((String)table.getValueAt(changed_row, Formula.Fields.TeX.getValue()),
-								Integer.parseInt((String)table.getValueAt(changed_row, Formula.Fields.Page.getValue())));
-						changed_row = -1;
-						changed_rows.remove(row_number-1);
-					}
-				}
-			}
-		});
-		JMenuItem mi_upd = new JMenuItem("Update");
-		mi_upd.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				int row_number;
-				Integer symb_id;
-				String found_result = null;
-				int updateResult = -1;
-				boolean insertion_left = false;
-				while ((changed_rows.size() > 0) && !insertion_left) {
-					row_number = changed_rows.size()-1;
-					changed_row = changed_rows.get(row_number);
-					if ((changed_row != -1) && (changed_row < table.getRowCount()-1)) {
-						String symbol_regex = "([a-z]|[A-Z])";
-						String result_regex = "^([A-Z]|[a-z])=";
-						String formula_TeX = table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString();
-						Pattern r = Pattern.compile(symbol_regex);
-						Pattern r_result = Pattern.compile(result_regex);
-						Matcher m = r.matcher(formula_TeX);
-						Matcher m_result = r_result.matcher(formula_TeX);
-						List<Integer> symbols_to_update = new ArrayList<Integer>();
-						System.out.println("Searching for formula " + formula_TeX);
-						List<Formula> result_list = fm.listFormulas(formula_TeX);
-						System.out.println("Result list length is: " + result_list.size());
-						if (m_result.find())
-							found_result = m_result.group(1);
-						else
-							found_result = null;
-						while (m.find()){
-							System.out.println("Found symbol " + m.group(0));
-							List<Symbol> stored_symbol = fm.find_symbol(m.group(0));
-							System.out.println("Already stored symbols: " + stored_symbol.size());
-							if (found_result != null) {
-								System.out.println("Comparing " + found_result + " and " + m.group(0));
-								updateResult = found_result.compareTo(m.group(0));
-								System.out.println("Results to update: " + updateResult);
-							}
-							else
-								updateResult = -1;
-							if (stored_symbol.size() > 0) {
-								if (updateResult == 0) {
-									System.out.println("Updating result symbol.");
-									fm.updateSymbol(stored_symbol.get(0).getId(),
-											result_list);
-								}
-								/*else
-									fm.updateSymbol(stored_symbol.get(0).getId(),
-											(Integer)table.getValueAt(changed_row, Fields.Id.getValue()));*/
-								symbols_to_update.add(stored_symbol.get(0).getId());
-							} else {
-								if (updateResult == 0)
-									symb_id = fm.insertSymbol(m.group(0), result_list);
-								else
-									symb_id = fm.insertSymbol(m.group(0));
-								symbols_to_update.add(symb_id);
-							}
-						}
-						fm.updateFormula((Integer)table.getValueAt(changed_row, Formula.Fields.Id.getValue()),
-								table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString(),
-								Integer.parseInt(table.getValueAt(changed_row, Formula.Fields.Page.getValue()).toString()),
-								symbols_to_update);
-						
-						changed_rows.remove(row_number);
-						changed_row = -1;
-					}
-					if (changed_rows.size() == 1)
-						insertion_left = changed_rows.get(0) == (table.getRowCount()-1);
-				}
-			}
-		});
-		JMenuItem mi_del = new JMenuItem("Delete");
-		mi_del.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				if ((selected_row != -1) && (selected_row < table.getRowCount()-1)) {
-					fm.deleteFormula((Integer)table.getValueAt(selected_row, Formula.Fields.Id.getValue()));
-					selected_row = -1;
-					m = init_data();
-					table.setModel(new DefaultTableModel(m, m_columns));
-					table.getModel().addTableModelListener(tmlRefresh);
-				}
-			}
-		});
-		JMenuItem mi_del_s = new JMenuItem("Delete symbol");
-		mi_del_s.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				if ((selected_row_s != -1) && (selected_row_s < table_symbols.getRowCount()-1)) {
-					fm.deleteSymbol((Integer)table_symbols.getValueAt(selected_row_s, Symbol.Fields.Id.getValue()));
-					selected_row_s = -1;
-					s = initializeSymbolTable();
-					table_symbols.setModel(new DefaultTableModel(s, s_columns));
-				}
-			}
-		});
+		mi_refresh = new JMenuItem("Refresh");
+		addRefreshActionListener();
+		mi_ins = new JMenuItem("Insert");
+		addInsertActionListener();
+		mi_upd = new JMenuItem("Update");
+		addUpdateActionListenener();
+		mi_del = new JMenuItem("Delete");
+		addDeleteActionListener();
+		mi_del_s = new JMenuItem("Delete symbol");
+		addDeleteSymbolActionListenenr();
 		m0.add(mi_ins);
 		m0.add(mi_upd);
 		m0.add(mi_del);
