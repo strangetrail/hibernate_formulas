@@ -16,10 +16,28 @@ import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
+
+class JFormulasTable extends JTable {
+	@Override
+	public boolean isCellEditable(int row, int col) {
+	     switch (col) {
+	         case 1:
+	         case 2:
+	             return true;
+	         default:
+	             return false;
+	      }
+	}
+	public JFormulasTable(Object[][] model, Object []columns) {
+		super(model, columns);
+	}
+}
+/**/
+
 public class DBEditor {
 
 	private JFrame frame;
-	private JTable table;
+	private JFormulasTable table;
 	private JScrollPane jspTable;
 	private JScrollPane jspTable_symbols;
 	private JMenuItem mi_upd, mi_ins, mi_del, mi_del_s, mi_refresh;
@@ -399,7 +417,7 @@ public class DBEditor {
 		frame.setBounds(100, 100, 720, 415);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		table = new JTable(m, m_columns);
+		table = new JFormulasTable(m, m_columns);
 		table.setCellSelectionEnabled(true);
 		s_model = table.getSelectionModel();
 		changed_row = -1;
