@@ -32,7 +32,16 @@ class JFormulasTable extends JTable {
 		super(model, columns);
 	}
 }
-/**/
+
+class JSymbolTable extends JTable {
+	@Override
+	public boolean isCellEditable(int row, int col) {
+		return false;
+	}
+	public JSymbolTable(Object[][] model, Object []columns) {
+		super(model, columns);
+	}
+}
 
 public class DBEditor {
 
@@ -50,7 +59,7 @@ public class DBEditor {
 	private TableModelListener tmlRefresh;
 	private Object [][]m, s;
 	private Object []m_columns, s_columns;
-	private JTable table_symbols;
+	private JSymbolTable table_symbols;
 
 
 	/**
@@ -436,7 +445,7 @@ public class DBEditor {
 		table.changeSelection(0, 0, false, false);
 		jspTable = new JScrollPane(table);
 		
-		table_symbols = new JTable(s, s_columns);
+		table_symbols = new JSymbolTable(s, s_columns);
 		
 		initializeListenersSymbol();
 		
