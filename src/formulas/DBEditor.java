@@ -358,6 +358,7 @@ public class DBEditor {
 
 					}
 				}
+				refreshTables();
 			}
 		});
 	}
@@ -383,6 +384,7 @@ public class DBEditor {
 					if (changed_rows.size() == 1)
 						insertion_left = changed_rows.get(0) == (table.getRowCount()-1);
 				}
+				refreshTables();
 			}
 		});		
 	}
