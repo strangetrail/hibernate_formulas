@@ -246,6 +246,12 @@ public class DBEditor {
 			public void actionPerformed(ActionEvent arg0) {
 				if ((selected_row != -1) && (selected_row < table.getRowCount()-1)) {
 					fm.deleteFormula((Integer)table.getValueAt(selected_row, Formula.Fields.Id.getValue()));
+					/*List<Symbol> l = fm.listSymbols();
+					for (Symbol symbolItem : l) {
+						Set<Formula> s = symbolItem.getAllFormulas(); 
+						if (s.size() == 0)
+							fm.deleteSymbol(symbolItem.getId());
+					}*/
 					selected_row = -1;
 					m = init_data();
 					table.setModel(new DefaultTableModel(m, m_columns));

@@ -1,6 +1,7 @@
 package formulas;
 
 import java.util.List;
+import java.util.Set;
 
 public class Symbol {
 	public enum Fields {
@@ -17,7 +18,8 @@ public class Symbol {
 	};
 	private int id;
 	private String symbolTex;
-	private List formulas;
+	private List resultFormulas;
+	private Set allFormulas;
 
 	public Symbol () {}
 	
@@ -46,14 +48,24 @@ public class Symbol {
         this.symbolTex = symbol_tex;
     }
 
-    public List getFormulas()
+    public List getResultFormulas()
     {
-        return formulas;
+        return resultFormulas;
     }
 
-    public void setFormulas(List formulas)
+    public void setResultFormulas(List formulas)
     {
-        this.formulas = formulas;
+        this.resultFormulas = formulas;
+    }
+    
+    public Set getAllFormulas()
+    {
+    	return allFormulas;
+    }
+    
+    public void setAllFormulas(Set formulas)
+    {
+    	this.allFormulas = formulas;
     }
     
     public boolean equals(Object obj)

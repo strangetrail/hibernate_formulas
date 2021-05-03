@@ -36,11 +36,15 @@
         </id>
         
         <property name="symbolTex" column="symbol_tex" type="string"/>
-        <list name="formulas" cascade="all">
+        <list name="resultFormulas" cascade="all">
         	<key column="result_symbol"/>
         	<list-index column="idx"/>
         	<one-to-many class="formulas.Formula"/>
         </list>
+        <set name="allFormulas" cascade="save-update" table="FORM_SYMB">
+        	<key column="symbol_id" />
+        	<many-to-many column="formula_id" class="formulas.Formula"/>
+        </set>
         
     </class>
 </hibernate-mapping>

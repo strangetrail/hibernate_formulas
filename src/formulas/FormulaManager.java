@@ -217,7 +217,7 @@ public class FormulaManager {
     		tx = session.beginTransaction();
     		Symbol s = new Symbol();
     		s.setSymbolTex(s_tex);
-    		s.setFormulas(result_list);
+    		s.setResultFormulas(result_list);
     		new_id = (Integer)session.save(s);
     		tx.commit();
     	} catch (HibernateException e) {
@@ -263,7 +263,7 @@ public class FormulaManager {
     		Formula formula = session.get(Formula.class, formula_id);
     		ArrayList<Formula> ar_f = new ArrayList<Formula>();
     		ar_f.add(formula);
-    		symbol.setFormulas(ar_f);
+    		symbol.setResultFormulas(ar_f);
     		session.update(symbol);
     		tx.commit();
     	} catch (HibernateException e) {
@@ -283,7 +283,7 @@ public class FormulaManager {
     	try {
     		tx = session.beginTransaction();
     		Symbol symbol = session.get(Symbol.class, SymbolId);
-    		List<Formula> formulasWithResult = symbol.getFormulas();
+    		List<Formula> formulasWithResult = symbol.getResultFormulas();
     		Boolean resultAlreadyExists = false;
     		for (Formula item : formulasWithResult) {
     			if (item.getId() == formula_results.get(0).getId()) {
@@ -294,7 +294,7 @@ public class FormulaManager {
     		if (!resultAlreadyExists) {
     			formulasWithResult.add(formula_results.get(0));
     		}
-    		symbol.setFormulas(formulasWithResult);
+    		symbol.setResultFormulas(formulasWithResult);
     		session.update(symbol);
     		tx.commit();
     	} catch (HibernateException e) {
