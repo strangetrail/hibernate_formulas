@@ -268,13 +268,68 @@ public class DBEditor {
 		});
 	}
 	
+	private void updateSymbols (Integer formulaId) {
+		Integer symb_id;
+		String found_result = null;
+		int updateResult = -1;
+		String symbol_regex = "([a-z]|[A-Z])";
+		String result_regex = "^([A-Z]|[a-z])=";
+		String formula_TeX = table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString();
+		Pattern r = Pattern.compile(symbol_regex);
+		Pattern r_result = Pattern.compile(result_regex);
+		Matcher m = r.matcher(formula_TeX);
+		Matcher m_result = r_result.matcher(formula_TeX);
+		List<Integer> symbols_to_update = new ArrayList<Integer>();
+		System.out.println("Searching for formula " + formula_TeX);
+		List<Formula> result_list = fm.listFormulas(formula_TeX);
+		System.out.println("Result list length is: " + result_list.size());
+		if (m_result.find())
+			found_result = m_result.group(1);
+		else
+			found_result = null;
+		while (m.find()){
+			System.out.println("Found symbol " + m.group(0));
+			List<Symbol> stored_symbol = fm.find_symbol(m.group(0));
+			System.out.println("Already stored symbols: " + stored_symbol.size());
+			if (found_result != null) {
+				System.out.println("Comparing " + found_result + " and " + m.group(0));
+				updateResult = found_result.compareTo(m.group(0));
+				System.out.println("Results to update: " + updateResult);
+			}
+			else
+				updateResult = -1;
+			if (stored_symbol.size() > 0) {
+				//if (table.getValueAt(changed_row, Formula.Fields.Result.getValue()).toString().compareTo("")==0) {
+					if (updateResult == 0) {
+						System.out.println("Updating result symbol.");
+						fm.updateSymbol(stored_symbol.get(0).getId(),
+								result_list);
+					}
+				//}
+				/*else
+					fm.updateSymbol(stored_symbol.get(0).getId(),
+							(Integer)table.getValueAt(changed_row, Fields.Id.getValue()));*/
+				symbols_to_update.add(stored_symbol.get(0).getId());
+			} else {	
+				if (updateResult == 0)
+					symb_id = fm.insertSymbol(m.group(0), result_list);
+				else
+					symb_id = fm.insertSymbol(m.group(0));
+				symbols_to_update.add(symb_id);
+			}
+		}
+		fm.updateFormula(formulaId,
+				table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString(),
+				Integer.parseInt(table.getValueAt(changed_row, Formula.Fields.Page.getValue()).toString()),
+				symbols_to_update);
+		
+	}
+	
 	private void addInsertActionListener() {
 		mi_ins.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				Integer symb_id, formulaId;
-				String found_result = null;
-				int updateResult = -1;
+				Integer formulaId;
 				System.out.println("Inserting on " + changed_row + " from " + table.getRowCount());
 				int row_number = 0;
 				boolean insertion_left = false;
@@ -296,56 +351,7 @@ public class DBEditor {
 						System.out.println("Inserting new formula");
 						formulaId = fm.insertFormula((String)table.getValueAt(changed_row, Formula.Fields.TeX.getValue()),
 								Integer.parseInt((String)table.getValueAt(changed_row, Formula.Fields.Page.getValue())));
-						String symbol_regex = "([a-z]|[A-Z])";
-						String result_regex = "^([A-Z]|[a-z])=";
-						String formula_TeX = table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString();
-						Pattern r = Pattern.compile(symbol_regex);
-						Pattern r_result = Pattern.compile(result_regex);
-						Matcher m = r.matcher(formula_TeX);
-						Matcher m_result = r_result.matcher(formula_TeX);
-						List<Integer> symbols_to_update = new ArrayList<Integer>();
-						System.out.println("Searching for formula " + formula_TeX);
-						List<Formula> result_list = fm.listFormulas(formula_TeX);
-						System.out.println("Result list length is: " + result_list.size());
-						if (m_result.find())
-							found_result = m_result.group(1);
-						else
-							found_result = null;
-						while (m.find()){
-							System.out.println("Found symbol " + m.group(0));
-							List<Symbol> stored_symbol = fm.find_symbol(m.group(0));
-							System.out.println("Already stored symbols: " + stored_symbol.size());
-							if (found_result != null) {
-								System.out.println("Comparing " + found_result + " and " + m.group(0));
-								updateResult = found_result.compareTo(m.group(0));
-								System.out.println("Results to update: " + updateResult);
-							}
-							else
-								updateResult = -1;
-							if (stored_symbol.size() > 0) {
-								//if (table.getValueAt(changed_row, Formula.Fields.Result.getValue()).toString().compareTo("")==0) {
-									if (updateResult == 0) {
-										System.out.println("Updating result symbol.");
-										fm.updateSymbol(stored_symbol.get(0).getId(),
-												result_list);
-									}
-								//}
-								/*else
-									fm.updateSymbol(stored_symbol.get(0).getId(),
-											(Integer)table.getValueAt(changed_row, Fields.Id.getValue()));*/
-								symbols_to_update.add(stored_symbol.get(0).getId());
-							} else {	
-								if (updateResult == 0)
-									symb_id = fm.insertSymbol(m.group(0), result_list);
-								else
-									symb_id = fm.insertSymbol(m.group(0));
-								symbols_to_update.add(symb_id);
-							}
-						}
-						fm.updateFormula(formulaId,
-								table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString(),
-								Integer.parseInt(table.getValueAt(changed_row, Formula.Fields.Page.getValue()).toString()),
-								symbols_to_update);
+						updateSymbols(formulaId);
 						changed_row = -1;
 						changed_rows.remove(row_number-1);
 
@@ -361,67 +367,15 @@ public class DBEditor {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				int row_number;
-				Integer symb_id;
-				String found_result = null;
-				int updateResult = -1;
 				boolean insertion_left = false;
 				while ((changed_rows.size() > 0) && !insertion_left) {
 					row_number = changed_rows.size()-1;
 					changed_row = changed_rows.get(row_number);
 					if ((changed_row != -1) && (changed_row < table.getRowCount()-1)) {
-						String symbol_regex = "([a-z]|[A-Z])";
-						String result_regex = "^([A-Z]|[a-z])=";
-						String formula_TeX = table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString();
-						Pattern r = Pattern.compile(symbol_regex);
-						Pattern r_result = Pattern.compile(result_regex);
-						Matcher m = r.matcher(formula_TeX);
-						Matcher m_result = r_result.matcher(formula_TeX);
-						List<Integer> symbols_to_update = new ArrayList<Integer>();
-						fm.updateFormula((Integer)table.getValueAt(changed_row, Formula.Fields.Id.getValue()),
-								formula_TeX,
-								Integer.parseInt(table.getValueAt(changed_row, Formula.Fields.Page.getValue()).toString()));
-						System.out.println("Searching for formula " + formula_TeX);
-						List<Formula> result_list = fm.listFormulas(formula_TeX);
-						System.out.println("Result list length is: " + result_list.size());
-						if (m_result.find())
-							found_result = m_result.group(1);
-						else
-							found_result = null;
-						while (m.find()){
-							System.out.println("Found symbol " + m.group(0));
-							List<Symbol> stored_symbol = fm.find_symbol(m.group(0));
-							System.out.println("Already stored symbols: " + stored_symbol.size());
-							if (found_result != null) {
-								System.out.println("Comparing " + found_result + " and " + m.group(0));
-								updateResult = found_result.compareTo(m.group(0));
-								System.out.println("Results to update: " + updateResult);
-							}
-							else
-								updateResult = -1;
-							if (stored_symbol.size() > 0) {
-								//if (table.getValueAt(changed_row, Formula.Fields.Result.getValue()).toString().compareTo("")==0) {
-									if (updateResult == 0) {
-										System.out.println("Updating result symbol.");
-										fm.updateSymbol(stored_symbol.get(0).getId(),
-												result_list);
-									}
-								//}
-								/*else
-									fm.updateSymbol(stored_symbol.get(0).getId(),
-											(Integer)table.getValueAt(changed_row, Fields.Id.getValue()));*/
-								symbols_to_update.add(stored_symbol.get(0).getId());
-							} else {
-								if (updateResult == 0)
-									symb_id = fm.insertSymbol(m.group(0), result_list);
-								else
-									symb_id = fm.insertSymbol(m.group(0));
-								symbols_to_update.add(symb_id);
-							}
-						}
 						fm.updateFormula((Integer)table.getValueAt(changed_row, Formula.Fields.Id.getValue()),
 								table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString(),
-								Integer.parseInt(table.getValueAt(changed_row, Formula.Fields.Page.getValue()).toString()),
-								symbols_to_update);
+								Integer.parseInt(table.getValueAt(changed_row, Formula.Fields.Page.getValue()).toString()));
+						updateSymbols((Integer)table.getValueAt(changed_row, Formula.Fields.Id.getValue()));
 						
 						changed_rows.remove(row_number);
 						changed_row = -1;
