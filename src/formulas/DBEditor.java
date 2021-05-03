@@ -252,6 +252,7 @@ public class DBEditor {
 						if (s.size() == 0)
 							fm.deleteSymbol(symbolItem.getId());
 					}*/
+					fm.deleteUnusedSymbols();
 					selected_row = -1;
 					m = init_data();
 					table.setModel(new DefaultTableModel(m, m_columns));

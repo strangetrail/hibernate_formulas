@@ -331,6 +331,32 @@ public class FormulaManager {
     	return null;
     }
 
+    public void deleteUnusedSymbols() {
+    	Session session = factory.openSession();
+    	Transaction tx = null;
+    	
+    	try
+    	{
+    		tx = session.beginTransaction();
+    		List<Symbol> symbols = session.createQuery("FROM Symbol").list();
+    		for (Symbol symbolItem : symbols) {
+				Set<Formula> s = symbolItem.getAllFormulas(); 
+				if (s.size() == 0)
+					session.delete(symbolItem);
+			}
+    		tx.commit();
+    	} catch (HibernateException e)
+    	{
+    		if (tx != null)
+    			tx.rollback();
+    		e.printStackTrace();
+    	}
+    	finally
+    	{
+    		session.close();
+    	}
+    }
+    
     public List<Symbol> listSymbols() {
     	Session session = factory.openSession();
     	Transaction tx = null;
