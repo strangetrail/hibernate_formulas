@@ -91,11 +91,16 @@ public class DBEditor {
 		
 		Object [][] model_data = new Object [l.size()+1][4];
 		int i = 0,j = 0;
+		Integer resultSymbol;
+		Symbol s;
 		for (Formula item : l) {
 			model_data[i][Formula.Fields.Id.getValue()] = item.getId();
 			model_data[i][Formula.Fields.TeX.getValue()] = item.getFormulaTex();
 			model_data[i][Formula.Fields.Page.getValue()] = item.getPageNum();
-			model_data[i][Formula.Fields.Result.getValue()] = item.getResultSymbol();
+			resultSymbol = item.getResultSymbol();
+			s = fm.getSymbol(resultSymbol);
+			if (s != null)
+				model_data[i][Formula.Fields.Result.getValue()] = s.getSymbolTex();
 			i+=1;
 		}
 		for (j=0; j<4; j++)
@@ -267,6 +272,9 @@ public class DBEditor {
 		mi_ins.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
+				Integer symb_id, formulaId;
+				String found_result = null;
+				int updateResult = -1;
 				System.out.println("Inserting on " + changed_row + " from " + table.getRowCount());
 				int row_number = 0;
 				boolean insertion_left = false;
@@ -286,10 +294,62 @@ public class DBEditor {
 				if (changed_row != -1) {
 					if (changed_row == table.getRowCount()-1) {
 						System.out.println("Inserting new formula");
-						fm.insertFormula((String)table.getValueAt(changed_row, Formula.Fields.TeX.getValue()),
+						formulaId = fm.insertFormula((String)table.getValueAt(changed_row, Formula.Fields.TeX.getValue()),
 								Integer.parseInt((String)table.getValueAt(changed_row, Formula.Fields.Page.getValue())));
+						String symbol_regex = "([a-z]|[A-Z])";
+						String result_regex = "^([A-Z]|[a-z])=";
+						String formula_TeX = table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString();
+						Pattern r = Pattern.compile(symbol_regex);
+						Pattern r_result = Pattern.compile(result_regex);
+						Matcher m = r.matcher(formula_TeX);
+						Matcher m_result = r_result.matcher(formula_TeX);
+						List<Integer> symbols_to_update = new ArrayList<Integer>();
+						System.out.println("Searching for formula " + formula_TeX);
+						List<Formula> result_list = fm.listFormulas(formula_TeX);
+						System.out.println("Result list length is: " + result_list.size());
+						if (m_result.find())
+							found_result = m_result.group(1);
+						else
+							found_result = null;
+						while (m.find()){
+							System.out.println("Found symbol " + m.group(0));
+							List<Symbol> stored_symbol = fm.find_symbol(m.group(0));
+							System.out.println("Already stored symbols: " + stored_symbol.size());
+							if (found_result != null) {
+								System.out.println("Comparing " + found_result + " and " + m.group(0));
+								updateResult = found_result.compareTo(m.group(0));
+								System.out.println("Results to update: " + updateResult);
+							}
+							else
+								updateResult = -1;
+							if (stored_symbol.size() > 0) {
+								//if (table.getValueAt(changed_row, Formula.Fields.Result.getValue()).toString().compareTo("")==0) {
+									if (updateResult == 0) {
+										System.out.println("Updating result symbol.");
+										fm.updateSymbol(stored_symbol.get(0).getId(),
+												result_list);
+									}
+								//}
+								/*else
+									fm.updateSymbol(stored_symbol.get(0).getId(),
+											(Integer)table.getValueAt(changed_row, Fields.Id.getValue()));*/
+								symbols_to_update.add(stored_symbol.get(0).getId());
+							} else {	
+								if (updateResult == 0)
+									symb_id = fm.insertSymbol(m.group(0), result_list);
+								else
+									symb_id = fm.insertSymbol(m.group(0));
+								symbols_to_update.add(symb_id);
+							}
+						}
+						fm.updateFormula(formulaId,
+								table.getValueAt(changed_row, Formula.Fields.TeX.getValue()).toString(),
+								Integer.parseInt(table.getValueAt(changed_row, Formula.Fields.Page.getValue()).toString()),
+								symbols_to_update);
 						changed_row = -1;
 						changed_rows.remove(row_number-1);
+
+
 					}
 				}
 			}
@@ -373,18 +433,22 @@ public class DBEditor {
 		});		
 	}
 	
+	private void refreshTables() {
+		m = init_data();
+		table.setModel(new DefaultTableModel(m, m_columns));
+		table.getModel().addTableModelListener(tmlRefresh);
+		s = initializeSymbolTable();
+		table_symbols.setModel(new DefaultTableModel(s, s_columns));
+	}
+
 	private void addRefreshActionListener() {
 		mi_refresh.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				m = init_data();
-				table.setModel(new DefaultTableModel(m, m_columns));
-				table.getModel().addTableModelListener(tmlRefresh);
-				s = initializeSymbolTable();
-				table_symbols.setModel(new DefaultTableModel(s, s_columns));
+				refreshTables();
 			}
 		});
 	}
-	
+
 	private void createTableModelListener() {
 		tmlRefresh = new TableModelListener() {
 			@Override

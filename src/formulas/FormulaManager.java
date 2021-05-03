@@ -108,7 +108,7 @@ public class FormulaManager {
 
     }
 
-    public void insertFormula(String f_tex, Integer f_pn) {
+    public Integer insertFormula(String f_tex, Integer f_pn) {
     	Session session = factory.openSession();
     	Transaction tx = null;
     	
@@ -119,8 +119,9 @@ public class FormulaManager {
     		f.setPageNum(f_pn);
     		//f.setResultSymbol(null);
     		System.out.println("Saving formula with TeX - " + f_tex + " and page - " + f_pn);
-    		session.save(f);
+    		Integer id = (Integer)session.save(f);
     		tx.commit();
+    		return id;
     	} catch (HibernateException e) {
     		if (tx != null)
     			tx.rollback();
@@ -128,6 +129,7 @@ public class FormulaManager {
     	} finally {
     		session.close();
     	}
+    	return null;
     	
     }
 
@@ -228,6 +230,27 @@ public class FormulaManager {
 		return new_id;
     }
 
+    public Symbol getSymbol(Integer symbolId)
+    {
+    	Session session = factory.openSession();
+    	Transaction tx = null;
+    	if (symbolId != null) {
+	    	try {
+	    		tx = session.beginTransaction();
+	    		Symbol symbol = session.get(Symbol.class, symbolId);
+	    		tx.commit();
+	    		return symbol;
+	    	} catch (HibernateException e) {
+	    		if (tx != null)
+	    			tx.rollback();
+	    		e.printStackTrace();
+	    	} finally {
+	    		session.close();
+	    	}
+    	}
+    	return null;
+    	
+    }
     
     public void updateSymbol(Integer SymbolId, Integer formula_id)
     {
