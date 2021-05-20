@@ -47,8 +47,8 @@ public class DBEditor {
 
 	private JFrame frame;
 	private JFormulasTable table;
-	private JScrollPane jspTable;
-	private JScrollPane jspTable_symbols;
+	private JScrollPane swingTable;
+	private JScrollPane swingTable_symbols;
 	private JMenuItem mi_upd, mi_ins, mi_del, mi_del_s, mi_refresh;
 	private FormulaManager fm;
 	private ListSelectionModel s_model;
@@ -470,22 +470,22 @@ public class DBEditor {
 		
 		
 		table.changeSelection(0, 0, false, false);
-		jspTable = new JScrollPane(table);
+		swingTable = new JScrollPane(table);
 		
 		table_symbols = new JSymbolTable(s, s_columns);
 		
 		initializeListenersSymbol();
 		
-		jspTable_symbols = new JScrollPane(table_symbols);
+		swingTable_symbols = new JScrollPane(table_symbols);
 
 		GroupLayout groupLayout = new GroupLayout(frame.getContentPane());
 		groupLayout.setHorizontalGroup(
 			groupLayout.createParallelGroup(Alignment.LEADING)
 				.addGroup(groupLayout.createSequentialGroup()
 					.addGap(20)
-					.addComponent(jspTable, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
+					.addComponent(swingTable, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(jspTable_symbols, GroupLayout.DEFAULT_SIZE, 276, Short.MAX_VALUE)
+					.addComponent(swingTable_symbols, GroupLayout.DEFAULT_SIZE, 276, Short.MAX_VALUE)
 					.addContainerGap())
 		);
 		groupLayout.setVerticalGroup(
@@ -493,8 +493,8 @@ public class DBEditor {
 				.addGroup(groupLayout.createSequentialGroup()
 					.addContainerGap()
 					.addGroup(groupLayout.createParallelGroup(Alignment.BASELINE)
-						.addComponent(jspTable, GroupLayout.PREFERRED_SIZE, 200, GroupLayout.PREFERRED_SIZE)
-						.addComponent(jspTable_symbols, GroupLayout.PREFERRED_SIZE, 197, GroupLayout.PREFERRED_SIZE))
+						.addComponent(swingTable, GroupLayout.PREFERRED_SIZE, 200, GroupLayout.PREFERRED_SIZE)
+						.addComponent(swingTable_symbols, GroupLayout.PREFERRED_SIZE, 197, GroupLayout.PREFERRED_SIZE))
 					.addContainerGap(145, Short.MAX_VALUE))
 		);
 		frame.getContentPane().setLayout(groupLayout);
